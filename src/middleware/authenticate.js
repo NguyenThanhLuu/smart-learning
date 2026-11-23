@@ -1,3 +1,4 @@
+import { connectDatabase } from '../config/database.js';
 import { User } from '../models/User.js';
 import { ApiError } from '../utils/api-error.js';
 import { verifyAccessToken } from '../utils/token.js';
@@ -17,6 +18,7 @@ export async function authenticate(request, _response, next) {
       throw new ApiError(401, 'This session is invalid or has expired.');
     }
 
+    await connectDatabase();
     const user = await User.findById(payload.sub);
 
     if (!user || payload.version !== (user.tokenVersion || 0)) {
