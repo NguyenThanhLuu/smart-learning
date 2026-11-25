@@ -37,3 +37,36 @@ export const createArticleSchema = z.object({
     .string()
     .refine((value) => value.trim().length > 0, 'Article content is required.'),
 });
+
+const vocabularyFieldsSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, 'Vocabulary name is required.')
+    .max(200, 'Vocabulary name must not exceed 200 characters.'),
+  pronounce: z
+    .string()
+    .trim()
+    .min(1, 'Vocabulary pronunciation is required.')
+    .max(500, 'Vocabulary pronunciation must not exceed 500 characters.'),
+  meaning: z
+    .string()
+    .trim()
+    .min(1, 'Vocabulary meaning is required.')
+    .max(2000, 'Vocabulary meaning must not exceed 2000 characters.'),
+});
+
+export const createVocabularySchema = vocabularyFieldsSchema.extend({
+  timesReviewed: z.number().int().nonnegative().optional().default(0),
+  reviewDate: z.string().trim().min(1, 'Vocabulary review date is required.'),
+});
+
+const reviewVocabularySchema = z.object({
+  reviewDate: z.string().trim().min(1, 'Vocabulary review date is required.'),
+  timesReviewed: z.number().int().nonnegative(),
+});
+
+export const updateVocabularySchema = z.union([
+  vocabularyFieldsSchema,
+  reviewVocabularySchema,
+]);

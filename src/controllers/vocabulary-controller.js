@@ -43,23 +43,20 @@ export async function createVocabulary(request, response) {
 }
 
 export async function updateVocabulary(request, response) {
-  const { reviewDate, timesReviewed } = request.body || {};
-
-  if (
-    typeof reviewDate !== 'string' ||
-    !reviewDate.trim() ||
-    !Number.isInteger(timesReviewed) ||
-    timesReviewed < 0
-  ) {
-    throw new ApiError(
-      400,
-      'reviewDate and a non-negative integer timesReviewed are required.'
-    );
-  }
+  const updates = request.body.name
+    ? {
+        name: request.body.name.toLowerCase(),
+        pronounce: request.body.pronounce,
+        meaning: request.body.meaning,
+      }
+    : {
+        reviewDate: request.body.reviewDate,
+        timesReviewed: request.body.timesReviewed,
+      };
 
   const vocabulary = await Vocabulary.findOneAndUpdate(
     { _id: request.params.id, user: request.user._id },
-    { reviewDate, timesReviewed },
+    updates,
     { new: true, runValidators: true }
   );
 
