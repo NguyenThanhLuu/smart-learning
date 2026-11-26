@@ -3,137 +3,70 @@ import test from 'node:test';
 import mongoose from 'mongoose';
 
 import {
-  createVisit,
   listUserActivity,
-  touchVisit,
+  touchActivity,
 } from '../src/controllers/activity-controller.js';
 import { User } from '../src/models/User.js';
-import { UserVisit } from '../src/models/UserVisit.js';
 
 function createResponseRecorder() {
   return {
     payload: undefined,
-    statusCode: 200,
-    status(statusCode) {
-      this.statusCode = statusCode;
-      return this;
-    },
     json(payload) {
       this.payload = payload;
     },
   };
 }
 
-test('creating a visit increments only the authenticated user', async () => {
-  const originalCreate = UserVisit.create;
+test('heartbeat updates last activity for the authenticated user', async () => {
   const originalUpdateOne = User.updateOne;
   const userId = new mongoose.Types.ObjectId();
-  const visitId = new mongoose.Types.ObjectId();
-  let createdVisit;
-  let userFilter;
-  let userUpdate;
+  let receivedFilter;
+  let receivedUpdate;
 
-  UserVisit.create = async (visit) => {
-    createdVisit = visit;
-    return { _id: visitId, ...visit };
-  };
   User.updateOne = async (filter, update) => {
-    userFilter = filter;
-    userUpdate = update;
+    receivedFilter = filter;
+    receivedUpdate = update;
   };
 
   try {
     const response = createResponseRecorder();
-    await createVisit({ user: { _id: userId } }, response);
+    await touchActivity({ user: { _id: userId } }, response);
 
-    assert.equal(createdVisit.user, userId);
-    assert.deepEqual(userFilter, { _id: userId });
-    assert.equal(userUpdate.$inc.visitCount, 1);
-    assert.equal(response.statusCode, 201);
-    assert.equal(response.payload.data.id, visitId.toString());
-  } finally {
-    UserVisit.create = originalCreate;
-    User.updateOne = originalUpdateOne;
-  }
-});
-
-test('heartbeat can update only a visit owned by the authenticated user', async () => {
-  const originalFindOneAndUpdate = UserVisit.findOneAndUpdate;
-  const originalUpdateOne = User.updateOne;
-  const userId = new mongoose.Types.ObjectId();
-  const visitId = new mongoose.Types.ObjectId();
-  let visitFilter;
-
-  UserVisit.findOneAndUpdate = async (filter, update) => {
-    visitFilter = filter;
-    return {
-      _id: visitId,
-      user: userId,
-      startedAt: new Date('2026-11-26T01:00:00.000Z'),
-      lastSeenAt: update.$set.lastSeenAt,
-    };
-  };
-  User.updateOne = async () => {};
-
-  try {
-    const response = createResponseRecorder();
-    await touchVisit(
-      { params: { id: visitId.toString() }, user: { _id: userId } },
-      response
+    assert.deepEqual(receivedFilter, { _id: userId });
+    assert.ok(receivedUpdate.$set.lastSeenAt instanceof Date);
+    assert.equal(
+      response.payload.data.last_active,
+      receivedUpdate.$set.lastSeenAt.toISOString()
     );
-
-    assert.deepEqual(visitFilter, {
-      _id: visitId.toString(),
-      user: userId,
-    });
-    assert.equal(response.payload.data.id, visitId.toString());
   } finally {
-    UserVisit.findOneAndUpdate = originalFindOneAndUpdate;
     User.updateOne = originalUpdateOne;
   }
 });
 
-test('activity list excludes admins and combines recent visit totals', async () => {
+test('admin activity list returns only user and last active', async () => {
   const originalFind = User.find;
-  const originalAggregate = UserVisit.aggregate;
-  const userId = new mongoose.Types.ObjectId();
-  let userFilter;
+  const lastSeenAt = new Date('2026-11-26T01:00:00.000Z');
 
-  User.find = (filter) => {
-    userFilter = filter;
-    return {
-      select() {
-        return this;
-      },
-      sort() {
-        return this;
-      },
-      async lean() {
-        return [
-          {
-            _id: userId,
-            name: 'Learner',
-            role: 'user',
-            visitCount: 8,
-          },
-        ];
-      },
-    };
-  };
-  UserVisit.aggregate = async () => [
-    { _id: userId, visitsLast7Days: 2, visitsLast30Days: 5 },
-  ];
+  User.find = () => ({
+    select() {
+      return this;
+    },
+    sort() {
+      return this;
+    },
+    async lean() {
+      return [{ name: 'Learner', lastSeenAt }];
+    },
+  });
 
   try {
     const response = createResponseRecorder();
     await listUserActivity({}, response);
 
-    assert.deepEqual(userFilter, { role: { $ne: 'admin' } });
-    assert.equal(response.payload.data[0].visitCount, 8);
-    assert.equal(response.payload.data[0].visitsLast7Days, 2);
-    assert.equal(response.payload.data[0].visitsLast30Days, 5);
+    assert.deepEqual(response.payload.data, [
+      { user: 'Learner', last_active: lastSeenAt.toISOString() },
+    ]);
   } finally {
     User.find = originalFind;
-    UserVisit.aggregate = originalAggregate;
   }
 });

@@ -26,17 +26,6 @@ export function serializeUser(user) {
   };
 }
 
-export function serializeUserVisit(visit) {
-  const value = asObject(visit);
-
-  return {
-    id: asId(value),
-    userId: asId(value.user),
-    started_at: asIsoDate(value.startedAt),
-    last_seen_at: asIsoDate(value.lastSeenAt),
-  };
-}
-
 export function serializeVocabulary(vocabulary) {
   const value = asObject(vocabulary);
 

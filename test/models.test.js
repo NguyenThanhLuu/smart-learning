@@ -4,12 +4,10 @@ import mongoose from 'mongoose';
 
 import { Article } from '../src/models/Article.js';
 import { User } from '../src/models/User.js';
-import { UserVisit } from '../src/models/UserVisit.js';
 import { Vocabulary } from '../src/models/Vocabulary.js';
 import {
   serializeArticle,
   serializeUser,
-  serializeUserVisit,
   serializeVocabulary,
 } from '../src/utils/serializers.js';
 
@@ -26,21 +24,6 @@ test('new users are active by default and expose their account status', async ()
   assert.equal(user.isActive, true);
   assert.equal(result.isActive, true);
   assert.equal(result.role, 'user');
-  assert.equal(user.visitCount, 0);
-});
-
-test('user visits expose only the visit timing contract', async () => {
-  const user = new mongoose.Types.ObjectId();
-  const startedAt = new Date('2026-11-26T01:00:00.000Z');
-  const lastSeenAt = new Date('2026-11-26T01:10:00.000Z');
-  const visit = new UserVisit({ user, startedAt, lastSeenAt });
-
-  await visit.validate();
-  const result = serializeUserVisit(visit);
-
-  assert.equal(result.userId, user.toString());
-  assert.equal(result.started_at, startedAt.toISOString());
-  assert.equal(result.last_seen_at, lastSeenAt.toISOString());
 });
 
 test('vocabulary keeps the frontend field contract', async () => {
