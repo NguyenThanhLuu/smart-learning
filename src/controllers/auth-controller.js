@@ -35,6 +35,10 @@ export async function loginWithCode(request, response) {
   }
 
   ensureAccountIsActive(user);
+  const now = new Date();
+  user.lastLoginAt = now;
+  user.lastSeenAt = now;
+  await user.save();
   sendSession(response, user);
 }
 

@@ -43,6 +43,13 @@ const userSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    lastLoginAt: Date,
+    lastSeenAt: Date,
+    visitCount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
   },
   { timestamps: true }
 );

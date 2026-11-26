@@ -6,6 +6,7 @@ import { env } from './config/env.js';
 import { authenticate } from './middleware/authenticate.js';
 import { ensureDatabase } from './middleware/ensure-database.js';
 import { errorHandler, notFound } from './middleware/errors.js';
+import activityRoutes from './routes/activity-routes.js';
 import articleRoutes from './routes/article-routes.js';
 import authRoutes from './routes/auth-routes.js';
 import userRoutes from './routes/user-routes.js';
@@ -44,6 +45,7 @@ app.get('/api/health', (_request, response) => {
 
 app.use('/api/auth', ensureDatabase, authRoutes);
 app.use('/api/users', authenticate, userRoutes);
+app.use('/api/activity', authenticate, activityRoutes);
 app.use('/api/articles', authenticate, articleRoutes);
 app.use('/api/vocabulary', authenticate, vocabularyRoutes);
 
