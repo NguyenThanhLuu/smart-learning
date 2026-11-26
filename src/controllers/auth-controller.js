@@ -1,6 +1,7 @@
 import { env } from '../config/env.js';
 import { User } from '../models/User.js';
 import { hashAccessCode, normalizeAccessCode } from '../utils/access-code.js';
+import { ensureAccountIsActive } from '../utils/account-status.js';
 import { ApiError } from '../utils/api-error.js';
 import {
   clearRefreshTokenCookie,
@@ -33,6 +34,7 @@ export async function loginWithCode(request, response) {
     throw new ApiError(401, "User's code incorrect!");
   }
 
+  ensureAccountIsActive(user);
   sendSession(response, user);
 }
 
@@ -47,13 +49,28 @@ export async function refreshSession(request, response) {
     const payload = verifyRefreshToken(refreshToken);
 
     if (payload.type !== 'refresh') {
-      throw new ApiError(401, 'Your session has expired. Please sign in again.');
+      throw new ApiError(
+        401,
+        'Your session has expired. Please sign in again.'
+      );
     }
 
     const user = await User.findById(payload.sub);
 
-    if (!user || payload.version !== (user.tokenVersion || 0)) {
-      throw new ApiError(401, 'Your session has expired. Please sign in again.');
+    if (!user) {
+      throw new ApiError(
+        401,
+        'Your session has expired. Please sign in again.'
+      );
+    }
+
+    ensureAccountIsActive(user);
+
+    if (payload.version !== (user.tokenVersion || 0)) {
+      throw new ApiError(
+        401,
+        'Your session has expired. Please sign in again.'
+      );
     }
 
     response.json({

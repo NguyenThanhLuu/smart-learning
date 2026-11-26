@@ -20,7 +20,9 @@ export function serializeUser(user) {
     id: asId(value),
     name: value.name,
     role: value.role || 'user',
+    isActive: value.isActive !== false,
     created_at: asIsoDate(value.createdAt),
+    updated_at: asIsoDate(value.updatedAt),
   };
 }
 

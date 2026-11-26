@@ -1,5 +1,6 @@
 import { connectDatabase } from '../config/database.js';
 import { User } from '../models/User.js';
+import { ensureAccountIsActive } from '../utils/account-status.js';
 import { ApiError } from '../utils/api-error.js';
 import { verifyAccessToken } from '../utils/token.js';
 
@@ -21,7 +22,13 @@ export async function authenticate(request, _response, next) {
     await connectDatabase();
     const user = await User.findById(payload.sub);
 
-    if (!user || payload.version !== (user.tokenVersion || 0)) {
+    if (!user) {
+      throw new ApiError(401, 'This session is no longer valid.');
+    }
+
+    ensureAccountIsActive(user);
+
+    if (payload.version !== (user.tokenVersion || 0)) {
       throw new ApiError(401, 'This session is no longer valid.');
     }
 

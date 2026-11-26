@@ -28,6 +28,11 @@ const userSchema = new mongoose.Schema(
       default: 'user',
       required: true,
     },
+    isActive: {
+      type: Boolean,
+      default: true,
+      required: true,
+    },
     tokenVersion: {
       type: Number,
       default: 0,
@@ -47,5 +52,6 @@ userSchema.pre('validate', function normalizeNameBeforeValidation() {
 });
 
 userSchema.index({ legacyId: 1 }, { unique: true, sparse: true });
+userSchema.index({ role: 1, createdAt: -1 });
 
 export const User = mongoose.model('User', userSchema);

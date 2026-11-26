@@ -9,6 +9,7 @@ export function errorHandler(error, _request, response, _next) {
   let statusCode = error.statusCode || 500;
   let message = error.message || 'Internal server error.';
   let details = error.details;
+  const errorCode = error.errorCode;
 
   if (error.name === 'ValidationError') {
     statusCode = 400;
@@ -39,6 +40,7 @@ export function errorHandler(error, _request, response, _next) {
 
   response.status(statusCode).json({
     message,
+    ...(errorCode ? { code: errorCode } : {}),
     ...(details ? { details } : {}),
     ...(env.nodeEnv === 'development' && statusCode >= 500
       ? { stack: error.stack }

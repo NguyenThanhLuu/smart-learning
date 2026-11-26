@@ -3,11 +3,28 @@ import test from 'node:test';
 import mongoose from 'mongoose';
 
 import { Article } from '../src/models/Article.js';
+import { User } from '../src/models/User.js';
 import { Vocabulary } from '../src/models/Vocabulary.js';
 import {
   serializeArticle,
+  serializeUser,
   serializeVocabulary,
 } from '../src/utils/serializers.js';
+
+test('new users are active by default and expose their account status', async () => {
+  const user = new User({
+    name: 'Test User',
+    normalizedName: 'test user',
+    codeHash: 'test-code-hash',
+  });
+
+  await user.validate();
+  const result = serializeUser(user);
+
+  assert.equal(user.isActive, true);
+  assert.equal(result.isActive, true);
+  assert.equal(result.role, 'user');
+});
 
 test('vocabulary keeps the frontend field contract', async () => {
   const user = new mongoose.Types.ObjectId();
